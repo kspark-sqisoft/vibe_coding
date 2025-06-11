@@ -3,22 +3,30 @@ import 'package:vibe_coding_flutter/features/post/application/post_usecase.dart'
 import 'package:vibe_coding_flutter/features/post/domain/post_entity.dart';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibe_coding_flutter/providers.dart';
 
-class PostEditViewModel extends ChangeNotifier {
-  final PostUseCase _postUseCase;
-  String? _error;
+final postEditNotifierProvider = AsyncNotifierProvider<PostEditNotifier, void>(
+  () {
+    return PostEditNotifier();
+  },
+);
+
+class PostEditNotifier extends AsyncNotifier<void> {
+  late PostUseCase _postUseCase;
   String? _uploadedImageUrl;
-  bool _isLoading = false;
+  String? _error;
 
-  PostEditViewModel(this._postUseCase);
-
-  String? get error => _error;
   String? get uploadedImageUrl => _uploadedImageUrl;
-  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  @override
+  Future<void> build() async {
+    _postUseCase = ref.watch(postUseCaseProvider);
+  }
 
   Future<void> createPost(String title, String content) async {
-    _isLoading = true;
-    notifyListeners();
+    state = const AsyncValue.loading();
     try {
       await _postUseCase.createPost(
         title,
@@ -27,11 +35,10 @@ class PostEditViewModel extends ChangeNotifier {
       );
       _error = null;
       _uploadedImageUrl = null;
-    } catch (e) {
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
       _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -41,8 +48,7 @@ class PostEditViewModel extends ChangeNotifier {
     String content, {
     String? currentImageUrl,
   }) async {
-    _isLoading = true;
-    notifyListeners();
+    state = const AsyncValue.loading();
     try {
       await _postUseCase.updatePost(
         id,
@@ -52,21 +58,22 @@ class PostEditViewModel extends ChangeNotifier {
       );
       _error = null;
       _uploadedImageUrl = null;
-    } catch (e) {
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
       _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> pickAndUploadImage() async {
-    _isLoading = true;
-    notifyListeners();
+    state = const AsyncValue.loading();
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery);
-      if (picked == null) return;
+      if (picked == null) {
+        state = const AsyncValue.data(null);
+        return;
+      }
 
       final imageBytes = await picked.readAsBytes();
       final fileName =
@@ -75,25 +82,22 @@ class PostEditViewModel extends ChangeNotifier {
       final url = await _postUseCase.uploadImage(imageBytes, fileName);
       _uploadedImageUrl = url;
       _error = null;
-    } catch (e) {
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
       _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> deletePost(String id) async {
-    _isLoading = true;
-    notifyListeners();
+    state = const AsyncValue.loading();
     try {
       await _postUseCase.deletePost(id);
       _error = null;
-    } catch (e) {
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
       _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = AsyncValue.error(e, st);
     }
   }
 }

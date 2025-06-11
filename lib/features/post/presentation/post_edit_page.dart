@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_coding_flutter/features/post/domain/post_entity.dart';
+import 'package:vibe_coding_flutter/providers.dart';
 import 'post_edit_viewmodel.dart';
 
-class PostEditPage extends StatefulWidget {
+class PostEditPage extends ConsumerStatefulWidget {
   final PostEntity? post;
 
   const PostEditPage({super.key, this.post});
 
   @override
-  State<PostEditPage> createState() => _PostEditPageState();
+  ConsumerState<PostEditPage> createState() => _PostEditPageState();
 }
 
-class _PostEditPageState extends State<PostEditPage> {
+class _PostEditPageState extends ConsumerState<PostEditPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
 
@@ -34,17 +35,28 @@ class _PostEditPageState extends State<PostEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = Provider.of<PostEditViewModel>(context);
+    final editNotifier = ref.watch(postEditNotifierProvider.notifier);
+    final editState = ref.watch(postEditNotifierProvider);
 
     // Determine the image URL to display at the top of the page
     String? imageToDisplayUrl;
-    if (vm.uploadedImageUrl != null) {
-      imageToDisplayUrl = vm.uploadedImageUrl;
+    if (editNotifier.uploadedImageUrl != null) {
+      imageToDisplayUrl = editNotifier.uploadedImageUrl;
     } else if (widget.post != null &&
         widget.post!.imageUrls != null &&
         widget.post!.imageUrls!.isNotEmpty) {
       imageToDisplayUrl = widget.post!.imageUrls!.first;
     }
+
+    ref.listen<AsyncValue<void>>(postEditNotifierProvider, (previous, next) {
+      next.whenOrNull(
+        error: (e, st) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('작업 실패: ${e.toString()}')));
+        },
+      );
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -53,7 +65,7 @@ class _PostEditPageState extends State<PostEditPage> {
           if (widget.post != null)
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: vm.isLoading
+              onPressed: editState.isLoading
                   ? null
                   : () async {
                       final confirmDelete = await showDialog<bool>(
@@ -75,13 +87,9 @@ class _PostEditPageState extends State<PostEditPage> {
                       );
 
                       if (confirmDelete == true) {
-                        await vm.deletePost(widget.post!.id);
-                        if (vm.error == null) {
+                        await editNotifier.deletePost(widget.post!.id);
+                        if (!editState.hasError) {
                           Navigator.of(context).pop(); // Close PostEditPage
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('삭제 실패: ${vm.error!}')),
-                          );
                         }
                       }
                     },
@@ -117,19 +125,19 @@ class _PostEditPageState extends State<PostEditPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: vm.isLoading
+              onPressed: editState.isLoading
                   ? null
                   : () async {
-                      await vm.pickAndUploadImage();
+                      await editNotifier.pickAndUploadImage();
                     },
-              icon: vm.isLoading
+              icon: editState.isLoading
                   ? const CircularProgressIndicator()
                   : const Icon(Icons.image),
               label: const Text('이미지 업로드'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: vm.isLoading
+              onPressed: editState.isLoading
                   ? null
                   : () async {
                       final title = _titleController.text.trim();
@@ -138,13 +146,13 @@ class _PostEditPageState extends State<PostEditPage> {
                       if (title.isNotEmpty && content.isNotEmpty) {
                         if (widget.post == null) {
                           // Creating a new post
-                          await vm.createPost(title, content);
+                          await editNotifier.createPost(title, content);
                         } else {
                           // Updating an existing post
                           // Determine the imageUrl to pass to updatePost safely
                           String? finalImageUrlForUpdate;
-                          if (vm.uploadedImageUrl != null) {
-                            finalImageUrlForUpdate = vm
+                          if (editNotifier.uploadedImageUrl != null) {
+                            finalImageUrlForUpdate = editNotifier
                                 .uploadedImageUrl; // Newly uploaded image takes precedence
                           } else if (widget.post != null &&
                               widget.post!.imageUrls != null &&
@@ -155,14 +163,16 @@ class _PostEditPageState extends State<PostEditPage> {
                                 .first; // Use existing image if no new one
                           }
 
-                          await vm.updatePost(
+                          await editNotifier.updatePost(
                             widget.post!.id,
                             title,
                             content,
                             currentImageUrl: finalImageUrlForUpdate,
                           );
                         }
-                        Navigator.of(context).pop();
+                        if (!editState.hasError) {
+                          Navigator.of(context).pop();
+                        }
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
@@ -171,9 +181,9 @@ class _PostEditPageState extends State<PostEditPage> {
                     },
               child: Text(widget.post == null ? '게시글 작성' : '게시글 수정'),
             ),
-            if (vm.error != null)
+            if (editState.hasError && editNotifier.error != null)
               Text(
-                'Error: ${vm.error!}',
+                'Error: ${editNotifier.error!}',
                 style: const TextStyle(color: Colors.red),
               ),
           ],

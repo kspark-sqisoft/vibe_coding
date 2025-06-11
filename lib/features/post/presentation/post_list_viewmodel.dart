@@ -5,33 +5,43 @@ import 'package:flutter/material.dart';
 import 'package:vibe_coding_flutter/features/post/application/post_usecase.dart';
 import 'package:vibe_coding_flutter/features/post/domain/post_entity.dart';
 import 'dart:typed_data'; // Uint8List를 위해 추가
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibe_coding_flutter/providers.dart';
 
-class PostListViewModel extends ChangeNotifier {
-  final PostUseCase useCase;
-  List<PostEntity> posts = [];
-  String? error;
-  String? uploadedImageUrl;
+final postListNotifierProvider =
+    AsyncNotifierProvider<PostListNotifier, List<PostEntity>>(() {
+      return PostListNotifier();
+    });
 
-  PostListViewModel(this.useCase);
+class PostListNotifier extends AsyncNotifier<List<PostEntity>> {
+  late PostUseCase _useCase;
+  String? _uploadedImageUrl;
 
-  Future<void> loadPosts() async {
+  @override
+  Future<List<PostEntity>> build() async {
+    _useCase = ref.watch(postUseCaseProvider);
+    return _fetchPosts();
+  }
+
+  Future<List<PostEntity>> _fetchPosts() async {
     try {
-      posts = await useCase.fetchPosts();
-      error = null;
-    } catch (e) {
-      error = e.toString();
+      final posts = await _useCase.fetchPosts();
+      return posts;
+    } catch (e, st) {
+      print('Error loading posts: $e\n$st');
+      // Consider handling the error state more gracefully in the UI
+      return [];
     }
-    notifyListeners();
   }
 
   Future<void> createPost(String title, String content) async {
+    state = const AsyncValue.loading();
     try {
-      await useCase.createPost(title, content, imageUrl: uploadedImageUrl);
-      await loadPosts();
-      uploadedImageUrl = null; // 글 작성 후 이미지 상태 초기화
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
+      await _useCase.createPost(title, content, imageUrl: _uploadedImageUrl);
+      _uploadedImageUrl = null; // 글 작성 후 이미지 상태 초기화
+      state = AsyncValue.data(await _fetchPosts());
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -44,13 +54,10 @@ class PostListViewModel extends ChangeNotifier {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}_${picked.name}';
 
     try {
-      final url = await useCase.uploadImage(imageBytes, fileName);
-      uploadedImageUrl = url;
-      error = null;
-      notifyListeners();
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
+      final url = await _useCase.uploadImage(imageBytes, fileName);
+      _uploadedImageUrl = url;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 }
