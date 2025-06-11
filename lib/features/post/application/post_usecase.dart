@@ -1,6 +1,5 @@
 import '../domain/post_repository.dart';
 import '../domain/post_entity.dart';
-import 'dart:io';
 import 'dart:typed_data';
 
 class PostUseCase {
