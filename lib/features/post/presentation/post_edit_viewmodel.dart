@@ -14,7 +14,6 @@ final postEditNotifierProvider =
     AsyncNotifierProvider<PostEditNotifier, PostEntity?>(PostEditNotifier.new);
 
 class PostEditNotifier extends AsyncNotifier<PostEntity?> {
-  final _logger = Logger(); // Create a logger instance
   String? uploadedImageUrl;
 
   void clearUploadedImageUrl() {
@@ -22,7 +21,7 @@ class PostEditNotifier extends AsyncNotifier<PostEntity?> {
     state = AsyncData(
       state.value,
     ); // Notify listeners that state has potentially changed
-    _logger.d('Uploaded image URL cleared.');
+    ref.read(loggerProvider).d('Uploaded image URL cleared.');
   }
 
   @override
@@ -37,39 +36,45 @@ class PostEditNotifier extends AsyncNotifier<PostEntity?> {
 
     if (image != null) {
       state = const AsyncLoading();
-      _logger.d('Image picking started, state set to loading.');
+      ref
+          .read(loggerProvider)
+          .d('Image picking started, state set to loading.');
       try {
         final imageBytes = await image.readAsBytes();
         final fileName = '${const Uuid().v4()}.jpg';
         uploadedImageUrl = await ref
             .read(postUseCaseProvider)
             .uploadImage(imageBytes, fileName);
-        _logger.d('Image uploaded. URL: $uploadedImageUrl');
+        ref.read(loggerProvider).d('Image uploaded. URL: $uploadedImageUrl');
         state = AsyncData(
           state.value,
         ); // Keep current post state, only update image URL separately
-        _logger.d('State set to AsyncData after image upload.');
+        ref
+            .read(loggerProvider)
+            .d('State set to AsyncData after image upload.');
       } catch (e) {
         state = AsyncError(e, StackTrace.current);
-        _logger.e('Image upload failed: $e');
+        ref.read(loggerProvider).e('Image upload failed: $e');
       }
     }
   }
 
   Future<void> createPost(String title, String content) async {
     state = const AsyncLoading();
-    _logger.d(
-      'Creating post with title: $title, content: $content, imageUrl: $uploadedImageUrl',
-    );
+    ref
+        .read(loggerProvider)
+        .d(
+          'Creating post with title: $title, content: $content, imageUrl: $uploadedImageUrl',
+        );
     try {
       final newPost = await ref
           .read(postUseCaseProvider)
           .createPost(title, content, imageUrl: uploadedImageUrl);
       state = AsyncData(newPost);
-      _logger.d('Post created successfully: ${newPost.id}');
+      ref.read(loggerProvider).d('Post created successfully: ${newPost.id}');
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
-      _logger.e('Post creation failed: $e');
+      ref.read(loggerProvider).e('Post creation failed: $e');
     }
   }
 
@@ -80,9 +85,11 @@ class PostEditNotifier extends AsyncNotifier<PostEntity?> {
     String? currentImageUrl,
   }) async {
     state = const AsyncLoading();
-    _logger.d(
-      'Updating post id: $id, title: $title, content: $content, uploadedImageUrl: $uploadedImageUrl, currentImageUrl: $currentImageUrl',
-    );
+    ref
+        .read(loggerProvider)
+        .d(
+          'Updating post id: $id, title: $title, content: $content, uploadedImageUrl: $uploadedImageUrl, currentImageUrl: $currentImageUrl',
+        );
     try {
       await ref
           .read(postUseCaseProvider)
@@ -97,23 +104,25 @@ class PostEditNotifier extends AsyncNotifier<PostEntity?> {
           .read(postUseCaseProvider)
           .fetchPost(id); // Fetch the latest post data
       state = AsyncData(updatedPost);
-      _logger.d('Post updated successfully: ${updatedPost.id}');
+      ref
+          .read(loggerProvider)
+          .d('Post updated successfully: ${updatedPost.id}');
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
-      _logger.e('Post update failed: $e');
+      ref.read(loggerProvider).e('Post update failed: $e');
     }
   }
 
   Future<void> deletePost(String id) async {
     state = const AsyncLoading();
-    _logger.d('Deleting post id: $id');
+    ref.read(loggerProvider).d('Deleting post id: $id');
     try {
       await ref.read(postUseCaseProvider).deletePost(id);
       state = const AsyncData(null); // Post deleted, so state is null
-      _logger.d('Post deleted successfully.');
+      ref.read(loggerProvider).d('Post deleted successfully.');
     } catch (e) {
       state = AsyncError(e, StackTrace.current);
-      _logger.e('Post deletion failed: $e');
+      ref.read(loggerProvider).e('Post deletion failed: $e');
     }
   }
 }
