@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:vibe_coding_flutter/features/post/application/post_usecase.dart'; // This import is unused
 import 'package:vibe_coding_flutter/features/post/domain/post_entity.dart';
-import 'package:vibe_coding_flutter/providers.dart';
 import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
 import 'post_edit_viewmodel.dart';
 
@@ -53,9 +53,13 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
       imageToDisplayUrl = widget.post!.imageUrls!.first;
     }
 
-    ref.listen<AsyncValue<void>>(postEditNotifierProvider, (previous, next) {
+    ref.listen<AsyncValue<PostEntity?>>(postEditNotifierProvider, (
+      previous,
+      next,
+    ) {
       next.whenOrNull(
         error: (e, st) {
+          if (!mounted) return;
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('작업 실패: ${e.toString()}')));
@@ -93,6 +97,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
 
                       if (confirmDelete == true) {
                         await editNotifier.deletePost(widget.post!.id);
+                        if (!mounted) return;
                         if (!editState.hasError) {
                           Navigator.of(context).pop(true); // 삭제 성공 시 true 반환
                         }
@@ -110,7 +115,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Image.network(
                   imageToDisplayUrl,
-                  height: 200,
+                  height: 400,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
@@ -178,11 +183,13 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                               content,
                               currentImageUrl: finalImageUrlForUpdate,
                             );
-                          }
-                          if (!editState.hasError) {
-                            Navigator.of(context).pop();
+                            if (!mounted) return;
+                            if (!editState.hasError) {
+                              Navigator.of(context).pop();
+                            }
                           }
                         } else {
+                          if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
                           );
@@ -190,9 +197,9 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                       },
                 child: Text(isNewPost ? '게시글 작성' : '게시글 수정'),
               ),
-            if (editState.hasError && editNotifier.error != null)
+            if (editState.hasError && editState.error != null)
               Text(
-                'Error: ${editNotifier.error!}',
+                'Error: ${editState.error!.toString()}',
                 style: const TextStyle(color: Colors.red),
               ),
           ],

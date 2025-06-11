@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
 import 'package:supabase_flutter/supabase_flutter.dart'
     hide Provider; // Provider 충돌 방지
 import 'package:vibe_coding_flutter/features/auth/data/supabase_auth_repository.dart';
-import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart'
+    as auth_notifier; // 별칭 추가
 import 'package:vibe_coding_flutter/features/auth/domain/user_with_profile.dart';
-import 'package:vibe_coding_flutter/providers.dart'; // authRepositoryProvider를 사용하기 위함
+import 'package:vibe_coding_flutter/providers.dart'
+    as app_providers; // authRepositoryProvider를 사용하기 위함
 
 import 'mock_auth_repository.mocks.dart';
 import 'dart:async'; // StreamController를 위해 추가
@@ -43,9 +45,13 @@ void main() {
       // authNotifierProvider를 오버라이드하여 모의 객체 주입
       container = riverpod.ProviderContainer(
         overrides: [
-          authRepositoryProvider.overrideWithValue(mockAuthRepository),
-          authNotifierProvider.overrideWith(
-            (ref) => AuthNotifier(ref.watch(authRepositoryProvider)),
+          app_providers.authRepositoryProvider.overrideWithValue(
+            mockAuthRepository,
+          ),
+          auth_notifier.authNotifierProvider.overrideWith(
+            (ref) => auth_notifier.AuthNotifier(
+              ref.watch(app_providers.authRepositoryProvider),
+            ),
           ),
         ],
       );
@@ -67,7 +73,9 @@ void main() {
       );
       when(mockAuthRepository.getCurrentUser()).thenReturn(mockUser);
 
-      final authNotifier = container.read(authNotifierProvider.notifier);
+      final authNotifier = container.read(
+        auth_notifier.authNotifierProvider.notifier,
+      );
 
       await Future.delayed(Duration.zero); // 비동기 로직 완료 대기
 
@@ -102,7 +110,9 @@ void main() {
         );
       });
 
-      final authNotifier = container.read(authNotifierProvider.notifier);
+      final authNotifier = container.read(
+        auth_notifier.authNotifierProvider.notifier,
+      );
 
       await authNotifier.signIn('test@example.com', 'password123');
 
@@ -126,7 +136,9 @@ void main() {
       );
       when(mockAuthRepository.getCurrentUser()).thenReturn(mockUser);
 
-      final authNotifier = container.read(authNotifierProvider.notifier);
+      final authNotifier = container.read(
+        auth_notifier.authNotifierProvider.notifier,
+      );
       await Future.delayed(Duration.zero);
 
       expect(authNotifier.state, isNotNull); // 초기 상태 확인
@@ -174,7 +186,9 @@ void main() {
         );
       });
 
-      final authNotifier = container.read(authNotifierProvider.notifier);
+      final authNotifier = container.read(
+        auth_notifier.authNotifierProvider.notifier,
+      );
 
       await authNotifier.signUp(
         'newuser@example.com',

@@ -1,19 +1,22 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
 import 'package:vibe_coding_flutter/features/auth/data/supabase_auth_repository.dart';
 import 'package:vibe_coding_flutter/features/auth/domain/user_with_profile.dart';
 import 'package:vibe_coding_flutter/providers.dart';
 
-final authRepositoryProvider = Provider(
-  (ref) => SupabaseAuthRepository(Supabase.instance.client),
-);
+// Removed: final authRepositoryProvider = riverpod.Provider(
+//   (ref) => SupabaseAuthRepository(
+//     Supabase.instance.client,
+//     ref.watch(loggerProvider),
+//   ),
+// );
 
 final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, UserWithProfile?>((ref) {
+    riverpod.StateNotifierProvider<AuthNotifier, UserWithProfile?>((ref) {
       return AuthNotifier(ref.watch(authRepositoryProvider));
     });
 
-class AuthNotifier extends StateNotifier<UserWithProfile?> {
+class AuthNotifier extends riverpod.StateNotifier<UserWithProfile?> {
   final SupabaseAuthRepository _authRepository;
 
   AuthNotifier(this._authRepository) : super(null) {
