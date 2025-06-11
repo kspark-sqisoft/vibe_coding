@@ -21,9 +21,26 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
   @override
   void initState() {
     super.initState();
+    // Clear any previously uploaded image when the page initializes
+    // This is crucial when navigating from one post to another or creating a new post.
+    Future.microtask(
+      () => ref.read(postEditNotifierProvider.notifier).clearUploadedImageUrl(),
+    );
+
     if (widget.post != null) {
       _titleController.text = widget.post!.title;
       _contentController.text = widget.post!.content;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant PostEditPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.post != oldWidget.post) {
+      _titleController.text = widget.post?.title ?? '';
+      _contentController.text = widget.post?.content ?? '';
+      // No need to clear uploadedImageUrl here, as initState already handles it
+      // when a new instance is created or a different post is loaded.
     }
   }
 
@@ -139,6 +156,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Image.network(
                   imageToDisplayUrl,
+                  key: ValueKey(imageToDisplayUrl),
                   height: 400,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -185,6 +203,12 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                           if (isNewPost) {
                             // Creating a new post
                             await editNotifier.createPost(title, content);
+                            if (!mounted) return;
+                            if (!editState.hasError) {
+                              Navigator.of(context).pop(
+                                true,
+                              ); // Return true to indicate refresh needed
+                            }
                           } else {
                             // Updating an existing post
                             // Determine the imageUrl to pass to updatePost safely
@@ -209,7 +233,9 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                             );
                             if (!mounted) return;
                             if (!editState.hasError) {
-                              Navigator.of(context).pop();
+                              Navigator.of(context).pop(
+                                true,
+                              ); // Return true to indicate refresh needed
                             }
                           }
                         } else {
