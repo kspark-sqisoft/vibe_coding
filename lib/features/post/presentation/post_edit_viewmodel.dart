@@ -82,4 +82,18 @@ class PostEditViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> deletePost(String id) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _postUseCase.deletePost(id);
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

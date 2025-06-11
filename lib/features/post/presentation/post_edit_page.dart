@@ -47,7 +47,47 @@ class _PostEditPageState extends State<PostEditPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.post == null ? '새 글 작성' : '게시글 수정')),
+      appBar: AppBar(
+        title: Text(widget.post == null ? '새 글 작성' : '게시글 수정'),
+        actions: [
+          if (widget.post != null)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: vm.isLoading
+                  ? null
+                  : () async {
+                      final confirmDelete = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('게시글 삭제'),
+                          content: const Text('정말로 이 게시글을 삭제하시겠습니까?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('취소'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('삭제'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmDelete == true) {
+                        await vm.deletePost(widget.post!.id);
+                        if (vm.error == null) {
+                          Navigator.of(context).pop(); // Close PostEditPage
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('삭제 실패: ${vm.error!}')),
+                          );
+                        }
+                      }
+                    },
+            ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
