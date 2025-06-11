@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/post/presentation/post_list_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/login_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,15 +16,17 @@ Future<void> main() async {
   runApp(ProviderScope(child: const MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authNotifierProvider);
+
     return MaterialApp(
       title: 'Vibe Coding Flutter',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: PostListPage(),
+      home: user == null ? const LoginPage() : const PostListPage(),
       debugShowCheckedModeBanner: false,
     );
   }

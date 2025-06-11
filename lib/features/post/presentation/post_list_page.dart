@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_coding_flutter/providers.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/login_page.dart';
+import 'package:vibe_coding_flutter/features/auth/domain/user_with_profile.dart';
 import 'post_list_viewmodel.dart';
 import 'post_edit_page.dart';
+import 'package:intl/intl.dart';
 
 class PostListPage extends ConsumerStatefulWidget {
   const PostListPage({super.key});
@@ -19,19 +23,52 @@ class _PostListPageState extends ConsumerState<PostListPage> {
   }
 
   void _showCreatePostDialog(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const PostEditPage())).then((_) {
-      ref.read(postListNotifierProvider.notifier).build();
-    });
+    final user = ref.read(authNotifierProvider);
+    if (user == null) {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+    } else {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const PostEditPage())).then((_) {
+        ref.invalidate(postListNotifierProvider);
+      });
+    }
+  }
+
+  void _signOut() async {
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    await authNotifier.signOut();
   }
 
   @override
   Widget build(BuildContext context) {
     final postsAsyncValue = ref.watch(postListNotifierProvider);
+    final userWithProfile = ref.watch(authNotifierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('블로그')),
+      appBar: AppBar(
+        title: Text(
+          userWithProfile != null && userWithProfile.username != null
+              ? '${userWithProfile.username}님 블로그'
+              : '블로그',
+        ),
+        actions: [
+          if (userWithProfile != null && userWithProfile.username != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  '${userWithProfile.username}님',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          if (userWithProfile != null)
+            IconButton(icon: const Icon(Icons.logout), onPressed: _signOut),
+        ],
+      ),
       body: postsAsyncValue.when(
         data: (posts) {
           if (posts.isEmpty) {
@@ -61,8 +98,10 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                               builder: (_) => PostEditPage(post: post),
                             ),
                           )
-                          .then((_) {
-                            ref.read(postListNotifierProvider.notifier).build();
+                          .then((shouldRefresh) {
+                            if (shouldRefresh == true) {
+                              ref.invalidate(postListNotifierProvider);
+                            }
                           });
                     },
                     child: Padding(
@@ -107,6 +146,30 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    if (post.username != null)
+                                      Text(
+                                        '작성자: ${post.username}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    Text(
+                                      DateFormat(
+                                        'yyyy.MM.dd HH:mm',
+                                      ).format(post.createdAt),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -122,10 +185,12 @@ class _PostListPageState extends ConsumerState<PostListPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreatePostDialog(context),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: userWithProfile != null
+          ? FloatingActionButton(
+              onPressed: () => _showCreatePostDialog(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }

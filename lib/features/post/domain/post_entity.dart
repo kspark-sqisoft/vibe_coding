@@ -3,6 +3,7 @@ class PostEntity {
   final String title;
   final String content;
   final String? userId;
+  final String? username;
   final DateTime createdAt;
   final List<String>? imageUrls;
 
@@ -11,6 +12,7 @@ class PostEntity {
     required this.title,
     required this.content,
     this.userId,
+    this.username,
     required this.createdAt,
     this.imageUrls,
   });

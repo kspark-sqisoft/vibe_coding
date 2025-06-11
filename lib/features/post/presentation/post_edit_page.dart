@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_coding_flutter/features/post/domain/post_entity.dart';
 import 'package:vibe_coding_flutter/providers.dart';
+import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
 import 'post_edit_viewmodel.dart';
 
 class PostEditPage extends ConsumerStatefulWidget {
@@ -37,6 +38,10 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
   Widget build(BuildContext context) {
     final editNotifier = ref.watch(postEditNotifierProvider.notifier);
     final editState = ref.watch(postEditNotifierProvider);
+    final user = ref.watch(authNotifierProvider);
+
+    final bool isAuthor = user != null && user.user.id == widget.post?.userId;
+    final bool isNewPost = widget.post == null;
 
     // Determine the image URL to display at the top of the page
     String? imageToDisplayUrl;
@@ -60,9 +65,9 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.post == null ? '새 글 작성' : '게시글 수정'),
+        title: Text(isNewPost ? '새 글 작성' : '게시글 수정'),
         actions: [
-          if (widget.post != null)
+          if (!isNewPost && isAuthor)
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: editState.isLoading
@@ -89,7 +94,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                       if (confirmDelete == true) {
                         await editNotifier.deletePost(widget.post!.id);
                         if (!editState.hasError) {
-                          Navigator.of(context).pop(); // Close PostEditPage
+                          Navigator.of(context).pop(true); // 삭제 성공 시 true 반환
                         }
                       }
                     },
@@ -113,6 +118,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: '제목'),
+              readOnly: !isNewPost && !isAuthor,
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -121,66 +127,69 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                 decoration: const InputDecoration(labelText: '내용'),
                 maxLines: null,
                 expands: true,
+                readOnly: !isNewPost && !isAuthor,
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: editState.isLoading
-                  ? null
-                  : () async {
-                      await editNotifier.pickAndUploadImage();
-                    },
-              icon: editState.isLoading
-                  ? const CircularProgressIndicator()
-                  : const Icon(Icons.image),
-              label: const Text('이미지 업로드'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: editState.isLoading
-                  ? null
-                  : () async {
-                      final title = _titleController.text.trim();
-                      final content = _contentController.text.trim();
+            if (isNewPost || isAuthor)
+              ElevatedButton.icon(
+                onPressed: editState.isLoading
+                    ? null
+                    : () async {
+                        await editNotifier.pickAndUploadImage();
+                      },
+                icon: editState.isLoading
+                    ? const CircularProgressIndicator()
+                    : const Icon(Icons.image),
+                label: const Text('이미지 업로드'),
+              ),
+            if (isNewPost || isAuthor) const SizedBox(height: 16),
+            if (isNewPost || isAuthor)
+              ElevatedButton(
+                onPressed: editState.isLoading
+                    ? null
+                    : () async {
+                        final title = _titleController.text.trim();
+                        final content = _contentController.text.trim();
 
-                      if (title.isNotEmpty && content.isNotEmpty) {
-                        if (widget.post == null) {
-                          // Creating a new post
-                          await editNotifier.createPost(title, content);
-                        } else {
-                          // Updating an existing post
-                          // Determine the imageUrl to pass to updatePost safely
-                          String? finalImageUrlForUpdate;
-                          if (editNotifier.uploadedImageUrl != null) {
-                            finalImageUrlForUpdate = editNotifier
-                                .uploadedImageUrl; // Newly uploaded image takes precedence
-                          } else if (widget.post != null &&
-                              widget.post!.imageUrls != null &&
-                              widget.post!.imageUrls!.isNotEmpty) {
-                            finalImageUrlForUpdate = widget
-                                .post!
-                                .imageUrls!
-                                .first; // Use existing image if no new one
+                        if (title.isNotEmpty && content.isNotEmpty) {
+                          if (isNewPost) {
+                            // Creating a new post
+                            await editNotifier.createPost(title, content);
+                          } else {
+                            // Updating an existing post
+                            // Determine the imageUrl to pass to updatePost safely
+                            String? finalImageUrlForUpdate;
+                            if (editNotifier.uploadedImageUrl != null) {
+                              finalImageUrlForUpdate = editNotifier
+                                  .uploadedImageUrl; // Newly uploaded image takes precedence
+                            } else if (widget.post != null &&
+                                widget.post!.imageUrls != null &&
+                                widget.post!.imageUrls!.isNotEmpty) {
+                              finalImageUrlForUpdate = widget
+                                  .post!
+                                  .imageUrls!
+                                  .first; // Use existing image if no new one
+                            }
+
+                            await editNotifier.updatePost(
+                              widget.post!.id,
+                              title,
+                              content,
+                              currentImageUrl: finalImageUrlForUpdate,
+                            );
                           }
-
-                          await editNotifier.updatePost(
-                            widget.post!.id,
-                            title,
-                            content,
-                            currentImageUrl: finalImageUrlForUpdate,
+                          if (!editState.hasError) {
+                            Navigator.of(context).pop();
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
                           );
                         }
-                        if (!editState.hasError) {
-                          Navigator.of(context).pop();
-                        }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('제목과 내용을 입력해주세요.')),
-                        );
-                      }
-                    },
-              child: Text(widget.post == null ? '게시글 작성' : '게시글 수정'),
-            ),
+                      },
+                child: Text(isNewPost ? '게시글 작성' : '게시글 수정'),
+              ),
             if (editState.hasError && editNotifier.error != null)
               Text(
                 'Error: ${editNotifier.error!}',

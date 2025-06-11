@@ -8,31 +8,44 @@ class SupabasePostRepository implements PostRepository {
 
   @override
   Future<List<PostEntity>> fetchPosts() async {
-    final response = await supabase.from('posts').select().order('created_at');
-    return (response as List)
-        .map(
-          (e) => PostEntity(
-            id: e['id'],
-            title: e['title'],
-            content: e['content'],
-            userId: e['user_id'],
-            createdAt: DateTime.parse(e['created_at']),
-            imageUrls: (e['image_urls'] as List?)
-                ?.map((url) => url.toString())
-                .toList(),
-          ),
-        )
-        .toList();
+    final response = await supabase
+        .from('posts')
+        .select('*, profiles(username)')
+        .order('created_at');
+
+    return (response as List).map((e) {
+      final profile = e['profiles'];
+      final username = profile is Map ? profile['username'] : null;
+      return PostEntity(
+        id: e['id'],
+        title: e['title'],
+        content: e['content'],
+        userId: e['user_id'],
+        username: username,
+        createdAt: DateTime.parse(e['created_at']),
+        imageUrls: (e['image_urls'] as List?)
+            ?.map((url) => url.toString())
+            .toList(),
+      );
+    }).toList();
   }
 
   @override
   Future<PostEntity> fetchPost(String id) async {
-    final data = await supabase.from('posts').select().eq('id', id).single();
+    final data = await supabase
+        .from('posts')
+        .select('*, profiles(username)')
+        .eq('id', id)
+        .single();
+
+    final profile = data['profiles'];
+    final username = profile is Map ? profile['username'] : null;
     return PostEntity(
       id: data['id'],
       title: data['title'],
       content: data['content'],
       userId: data['user_id'],
+      username: username,
       createdAt: DateTime.parse(data['created_at']),
       imageUrls: (data['image_urls'] as List?)
           ?.map((url) => url.toString())
@@ -55,13 +68,18 @@ class SupabasePostRepository implements PostRepository {
           'user_id': user?.id,
           'image_urls': imageUrl != null ? [imageUrl] : [],
         })
-        .select()
+        .select('*, profiles(username)')
         .single();
+
+    final profile = data['profiles'];
+    final username = profile is Map ? profile['username'] : null;
+
     return PostEntity(
       id: data['id'],
       title: data['title'],
       content: data['content'],
       userId: data['user_id'],
+      username: username,
       createdAt: DateTime.parse(data['created_at']),
       imageUrls: (data['image_urls'] as List?)
           ?.map((url) => url.toString())
