@@ -4,6 +4,7 @@ import 'package:vibe_coding_flutter/providers.dart';
 import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
 import 'package:vibe_coding_flutter/features/auth/presentation/login_page.dart';
 import 'package:vibe_coding_flutter/features/auth/domain/user_with_profile.dart';
+import 'package:vibe_coding_flutter/core/theme/theme_provider.dart';
 import 'post_list_viewmodel.dart';
 import 'post_edit_page.dart';
 import 'package:intl/intl.dart';
@@ -65,6 +66,16 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                 ),
               ),
             ),
+          IconButton(
+            icon: Icon(
+              ref.watch(themeProvider) == ThemeMode.light
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () {
+              ref.read(themeProvider.notifier).toggleTheme();
+            },
+          ),
           if (userWithProfile != null)
             IconButton(icon: const Icon(Icons.logout), onPressed: _signOut),
         ],
@@ -139,10 +150,7 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                                 const SizedBox(height: 8),
                                 Text(
                                   post.content,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
+                                  style: TextStyle(fontSize: 14),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -151,22 +159,15 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    if (post.username != null)
-                                      Text(
-                                        '작성자: ${post.username}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[500],
-                                        ),
-                                      ),
+                                    Text(
+                                      '작성자: ${post.username ?? 'Unknown'}',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
                                     Text(
                                       DateFormat(
                                         'yyyy.MM.dd HH:mm',
                                       ).format(post.createdAt),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[500],
-                                      ),
+                                      style: TextStyle(fontSize: 12),
                                     ),
                                   ],
                                 ),

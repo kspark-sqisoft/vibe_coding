@@ -80,16 +80,40 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
                       final confirmDelete = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('게시글 삭제'),
-                          content: const Text('정말로 이 게시글을 삭제하시겠습니까?'),
+                          title: Text(
+                            '게시글 삭제',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.titleLarge!.color,
+                            ),
+                          ),
+                          content: Text(
+                            '정말로 이 게시글을 삭제하시겠습니까?',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium!.color,
+                            ),
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('취소'),
+                              child: Text(
+                                '취소',
+                                style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
                             ),
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('삭제'),
+                              child: Text(
+                                '삭제',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -200,7 +224,7 @@ class _PostEditPageState extends ConsumerState<PostEditPage> {
             if (editState.hasError && editState.error != null)
               Text(
                 'Error: ${editState.error!.toString()}',
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
           ],
         ),

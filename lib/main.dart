@@ -5,8 +5,10 @@ import 'features/post/presentation/post_list_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vibe_coding_flutter/features/auth/presentation/auth_notifier.dart';
 import 'package:vibe_coding_flutter/features/auth/presentation/login_page.dart';
+import 'package:vibe_coding_flutter/core/theme/theme_provider.dart';
+import 'package:vibe_coding_flutter/core/theme/app_theme.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
   await Supabase.initialize(
@@ -21,11 +23,14 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
     final user = ref.watch(authNotifierProvider);
 
     return MaterialApp(
       title: 'Vibe Coding Flutter',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       home: user == null ? const LoginPage() : const PostListPage(),
       debugShowCheckedModeBanner: false,
     );
