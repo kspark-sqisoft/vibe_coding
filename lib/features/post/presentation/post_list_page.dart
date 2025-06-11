@@ -30,11 +30,32 @@ class _PostListPageState extends ConsumerState<PostListPage> {
         context,
       ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
     } else {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const PostEditPage())).then((_) {
-        ref.invalidate(postListNotifierProvider);
-      });
+      Navigator.of(context)
+          .push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const PostEditPage(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(0.0, 1.0); // Start from bottom
+                    const end = Offset.zero;
+                    const curve = Curves.easeOut;
+
+                    var tween = Tween(
+                      begin: begin,
+                      end: end,
+                    ).chain(CurveTween(curve: curve));
+
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+            ),
+          )
+          .then((_) {
+            ref.invalidate(postListNotifierProvider);
+          });
     }
   }
 
@@ -105,8 +126,34 @@ class _PostListPageState extends ConsumerState<PostListPage> {
                     onTap: () {
                       Navigator.of(context)
                           .push(
-                            MaterialPageRoute(
-                              builder: (_) => PostEditPage(post: post),
+                            PageRouteBuilder(
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      PostEditPage(post: post),
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    const begin = Offset(
+                                      1.0,
+                                      0.0,
+                                    ); // Start from right
+                                    const end = Offset.zero;
+                                    const curve = Curves.easeOut;
+
+                                    var tween = Tween(
+                                      begin: begin,
+                                      end: end,
+                                    ).chain(CurveTween(curve: curve));
+
+                                    return SlideTransition(
+                                      position: animation.drive(tween),
+                                      child: child,
+                                    );
+                                  },
                             ),
                           )
                           .then((shouldRefresh) {
@@ -187,9 +234,10 @@ class _PostListPageState extends ConsumerState<PostListPage> {
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: userWithProfile != null
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: () => _showCreatePostDialog(context),
-              child: const Icon(Icons.add),
+              label: const Text('새 글'),
+              icon: const Icon(Icons.add),
             )
           : null,
     );
