@@ -1,5 +1,4 @@
 import 'post_entity.dart';
-import 'dart:io';
 import 'dart:typed_data'; // Uint8List를 위해 추가
 
 abstract class PostRepository {
